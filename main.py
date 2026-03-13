@@ -8,6 +8,7 @@ from config import STOCK_SYMBOL
 from fetch_data import fetch_stock_data
 from preprocess import preprocess_data
 from train_model import train_models
+from predict import predict_next_day
 
 def main():
     print("=" * 50)
@@ -22,12 +23,11 @@ def main():
         print(f"\n[1] Found existing data: {csv_files[0]}")
         print("   Skipping download...")
     else:
-        # Step 1: Fetch data (only if no data exists)
         print("\n[1] No existing data found. Fetching new data...")
         data_path = fetch_stock_data()
         
         if not data_path:
-            print("\n[-] Data fetch failed. Exiting.")
+            print("[-] Data fetch failed. Exiting.")
             return
     
     # Step 2: Preprocess data
@@ -36,16 +36,18 @@ def main():
     
     if result:
         df, X, y = result
-        print(f"\n[+] Preprocessing successful!")
-        print(f"   Final dataset: {len(df)} days")
-        print(f"   Training sequences: {X.shape[0]}")
+        print("[+] Preprocessing successful!")
     else:
-        print("\n[-] Preprocessing failed.")
+        print("[-] Preprocessing failed.")
         return
     
     # Step 3: Train models
     print("\n[3] Training models...")
     best_model, results, test_data = train_models(X, y)
+    
+    # Step 4: Make prediction
+    print("\n[4] Making next day prediction...")
+    prediction = predict_next_day()
 
 if __name__ == "__main__":
     main()
