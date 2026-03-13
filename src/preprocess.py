@@ -12,12 +12,27 @@ def load_latest_data():
         print("[-] No CSV files found in raw data folder.")
         return None
     
-    latest_file = max(csv_files)  # Gets most recent by name (dates are in filename)
+    latest_file = max(csv_files)
     filepath = os.path.join(DATA_RAW_DIR, latest_file)
     
     print(f"[*] Loading: {latest_file}")
     df = pd.read_csv(filepath)
-    df['Date'] = pd.to_datetime(df['Date'])
+    
+    # Drop the first column if it's unnamed (contains stock symbol)
+    if 'Unnamed: 0' in df.columns:
+        df = df.drop(columns=['Unnamed: 0'])
+    
+    # Fix date format
+    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', dayfirst=True)
+    
+    # Ensure numeric columns are actually numbers
+    numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Drop any rows with NaN values
+    df = df.dropna()
+    
     return df
 
 def create_features(df):
@@ -57,7 +72,9 @@ def preprocess_data():
     if df is None:
         return None
     
-    print(f"[#] Original data shape: {df.shape}")
+    print(f"[+] Original data shape: {df.shape}")
+    print(f"[+] Date range: {df['Date'].min()} to {df['Date'].max()}")
+    print(f"[+] Columns: {list(df.columns)}")
     
     # Create features
     df = create_features(df)
@@ -65,7 +82,7 @@ def preprocess_data():
     # Drop NaN values from rolling calculations
     df = df.dropna()
     
-    print(f"[#] After feature engineering: {df.shape}")
+    print(f"[+] After feature engineering: {df.shape}")
     
     # Save processed data
     output_file = os.path.join(DATA_PROCESSED_DIR, "processed_data.csv")
