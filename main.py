@@ -242,3 +242,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    exec(open('git_commit.py').read())
