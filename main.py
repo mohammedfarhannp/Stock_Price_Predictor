@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from config import STOCK_SYMBOL
 from fetch_data import fetch_stock_data
 from preprocess import preprocess_data
+from train_model import train_models
 
 def main():
     print("=" * 50)
@@ -26,7 +27,7 @@ def main():
         data_path = fetch_stock_data()
         
         if not data_path:
-            print("\n✗ Data fetch failed. Exiting.")
+            print("\n[-] Data fetch failed. Exiting.")
             return
     
     # Step 2: Preprocess data
@@ -35,17 +36,16 @@ def main():
     
     if result:
         df, X, y = result
-        print(f"\n✓ Preprocessing successful!")
-        print(f"   Final dataset: {len(df)} days of processed data")
+        print(f"\n[+] Preprocessing successful!")
+        print(f"   Final dataset: {len(df)} days")
         print(f"   Training sequences: {X.shape[0]}")
-        print(f"   Features per sequence: {X.shape[2]}")
     else:
-        print("\n✗ Preprocessing failed.")
+        print("\n[-] Preprocessing failed.")
         return
     
-    print("\n" + "=" * 50)
-    print("✓ Ready for model training!")
-    print("=" * 50)
+    # Step 3: Train models
+    print("\n[3] Training models...")
+    best_model, results, test_data = train_models(X, y)
 
 if __name__ == "__main__":
     main()
