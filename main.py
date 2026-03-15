@@ -46,7 +46,7 @@ def should_update_data():
     # Calculate next expected trading day
     next_day = last_date + timedelta(days=1)
     
-    # Skip weekends
+    # Skip weekends for next expected trading day
     while next_day.weekday() >= 5:  # 5=Saturday, 6=Sunday
         next_day += timedelta(days=1)
     
@@ -54,8 +54,14 @@ def should_update_data():
     print(f"[+] Current date: {today.strftime('%d/%m/%Y')}")
     print(f"[+] Next expected trading day: {next_day.strftime('%d/%m/%Y')}")
     
-    # Check if we're missing data
-    if today > next_day:
+    # Check if today is a weekend - if so, DON'T try to download
+    if today.weekday() >= 5:  # Saturday or Sunday
+        print("[+] Today is a weekend. No trading data available.")
+        print("[+] Skipping download until next trading day.")
+        return False
+    
+    # Check if we're missing data (only on weekdays)
+    if today > next_day and today.weekday() < 5:
         print("[+] New data available. Downloading...")
         return True
     else:
