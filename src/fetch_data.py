@@ -9,9 +9,21 @@ from datetime import datetime
 def fetch_stock_data():
     print(f"Fetching data for {STOCK_SYMBOL}...")
     
+    # Check if today is weekend
+    today = datetime.now().date()
+    if today.weekday() >= 5:  # Saturday or Sunday
+        print("[+] Today is a weekend. Using last available trading day.")
+        # Use Friday's date as end date
+        end_date = today - timedelta(days=(today.weekday() - 4))
+    else:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
     try:
         # Download data
-        stock = yf.download(STOCK_SYMBOL, start=START_DATE, end=END_DATE, progress=False)
+        stock = yf.download(STOCK_SYMBOL, 
+                           start=START_DATE, 
+                           end=end_date,
+                           progress=False)
         
         if stock.empty:
             print("[-] No data found. Check symbol or date range.")
@@ -21,7 +33,7 @@ def fetch_stock_data():
         stock.reset_index(inplace=True)
         
         # Save to CSV
-        filename = f"{STOCK_SYMBOL.replace('.', '_')}_{START_DATE}_to_{END_DATE}.csv"
+        filename = f"{STOCK_SYMBOL.replace('.', '_')}_{START_DATE}_to_{end_date}.csv"
         filepath = os.path.join(DATA_RAW_DIR, filename)
         stock.to_csv(filepath, index=False)
         
