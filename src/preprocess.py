@@ -1,10 +1,11 @@
-# preprocess.py
+# preprocess.py (add debug prints)
 import pandas as pd
 import numpy as np
 import os
 from config import DATA_RAW_DIR, DATA_PROCESSED_DIR, FEATURES, LOOKBACK_DAYS
 
 def load_latest_data():
+    """Load the most recent CSV file from raw data folder"""
     files = os.listdir(DATA_RAW_DIR)
     csv_files = [f for f in files if f.endswith('.csv')]
     
@@ -15,7 +16,7 @@ def load_latest_data():
     latest_file = max(csv_files)
     filepath = os.path.join(DATA_RAW_DIR, latest_file)
     
-    print(f"[*] Loading: {latest_file}")
+    print(f"[+] Loading: {latest_file}")
     df = pd.read_csv(filepath)
     
     # Drop the first column if it's unnamed (contains stock symbol)
@@ -33,9 +34,11 @@ def load_latest_data():
     # Drop any rows with NaN values
     df = df.dropna()
     
+    print(f"[+] Loaded {len(df)} rows after cleaning")
     return df
 
 def create_features(df):
+    """Create technical indicators as features"""
     df = df.copy()
     
     # Moving averages
@@ -55,17 +58,27 @@ def create_features(df):
     return df
 
 def create_sequences(df, lookback=LOOKBACK_DAYS):
+    """Create sequences for time series prediction"""
     X, y = [], []
     data = df[FEATURES].values
+    
+    print(f"[+] Creating sequences from {len(data)} data points with lookback={lookback}")
     
     for i in range(lookback, len(data)):
         X.append(data[i-lookback:i])
         y.append(data[i, 3])  # 3 is index of 'Close' price
     
-    return np.array(X), np.array(y)
+    X = np.array(X)
+    y = np.array(y)
+    
+    print(f"[+] Created {len(X)} sequences")
+    return X, y
 
 def preprocess_data():
-    print("[+] Starting data preprocessing...")
+    """Main preprocessing function"""
+    print("\n" + "=" * 50)
+    print("DATA PREPROCESSING")
+    print("=" * 50)
     
     # Load data
     df = load_latest_data()
@@ -78,11 +91,15 @@ def preprocess_data():
     
     # Create features
     df = create_features(df)
+    print(f"[+] After feature creation: {df.shape}")
     
     # Drop NaN values from rolling calculations
+    before_drop = len(df)
     df = df.dropna()
+    after_drop = len(df)
+    print(f"[+] Dropped {before_drop - after_drop} rows with NaN values")
     
-    print(f"[+] After feature engineering: {df.shape}")
+    print(f"[+] Final data shape: {df.shape}")
     
     # Save processed data
     output_file = os.path.join(DATA_PROCESSED_DIR, "processed_data.csv")
@@ -91,10 +108,19 @@ def preprocess_data():
     
     # Create sequences for model
     X, y = create_sequences(df)
+    
+    if len(X) == 0:
+        print("[-] WARNING: No sequences created! Not enough data.")
+        print(f"    Need at least {LOOKBACK_DAYS + 1} days of data to create one sequence.")
+        print(f"    Current data points: {len(df)}")
+        return None
+    
     print(f"[+] Created sequences: X shape {X.shape}, y shape {y.shape}")
     
     return df, X, y
 
 if __name__ == "__main__":
     # Test the function
-    df, X, y = preprocess_data()
+    result = preprocess_data()
+    if result:
+        df, X, y = result
