@@ -7,7 +7,7 @@ STOCK_NAME = "Rolex Rings"
 
 # Date settings
 START_DATE = "2025-01-01"  # 1 year of historical data
-END_DATE = "2026-03-13"     # Current date
+END_DATE = "2026-03-16"     # Current date
 
 # File paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
