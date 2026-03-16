@@ -2,11 +2,21 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import os
+import sys
+from nselib import capital_market
+
+# Add src to path if needed
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 CSV_FILE = "data/raw/ROLEXRINGS_NS_2025-01-01_to_CURRENT.csv"
+STOCK_SYMBOL = "ROLEXRINGS"
 
 def get_last_date_from_csv():
     """Get the last date in the CSV file"""
+    if not os.path.exists(CSV_FILE):
+        print(f"[-] CSV file not found: {CSV_FILE}")
+        return None, None
+    
     df = pd.read_csv(CSV_FILE)
     df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
     last_date = df['Date'].max().date()
@@ -14,7 +24,7 @@ def get_last_date_from_csv():
 
 def is_trading_day(date):
     """Check if date is a weekday (Mon-Fri)"""
-    return date.weekday() < 5  # 0=Monday, 4=Friday
+    return date.weekday() < 5
 
 def generate_missing_dates(last_date, today):
     """Generate list of missing trading days between last_date and today"""
@@ -28,39 +38,72 @@ def generate_missing_dates(last_date, today):
     
     return missing_dates
 
-def add_mock_data_for_date(date, last_row):
-    """Generate mock data for a missing date based on last known data"""
-    import random
-    
-    # Small random variation (±2%)
-    variation = random.uniform(-0.02, 0.02)
-    base_price = last_row['Close']
-    
-    close_price = base_price * (1 + variation)
-    high_price = close_price * (1 + abs(random.uniform(0, 0.01)))
-    low_price = close_price * (1 - abs(random.uniform(0, 0.01)))
-    open_price = low_price + (high_price - low_price) * random.random()
-    volume = int(last_row['Volume'] * random.uniform(0.8, 1.2))
-    
-    return {
-        'Date': date.strftime('%d/%m/%Y'),
-        'Close': round(close_price, 2),
-        'High': round(high_price, 2),
-        'Low': round(low_price, 2),
-        'Open': round(open_price, 2),
-        'Volume': volume
-    }
+def fetch_nse_data(from_date, to_date):
+    """
+    Fetch stock data from nselib and map to required format
+    """
+    try:
+        # Format dates for nselib (DD-MM-YYYY)
+        from_str = from_date.strftime('%d-%m-%Y')
+        to_str = to_date.strftime('%d-%m-%Y')
+        
+        print(f"   Fetching data from {from_str} to {to_str}...")
+        
+        # Fetch data from nselib
+        data = capital_market.price_volume_and_deliverable_position_data(
+            symbol=STOCK_SYMBOL,
+            from_date=from_str,
+            to_date=to_str
+        )
+        
+        if data is None or data.empty:
+            print("   ❌ No data returned")
+            return None
+        
+        # Map to required format
+        mapped_data = pd.DataFrame({
+            'Date': pd.to_datetime(data['Date']).dt.strftime('%d/%m/%Y'),
+            'Open': data['OpenPrice'],
+            'High': data['HighPrice'],
+            'Low': data['LowPrice'],
+            'Close': data['ClosePrice'],
+            'Volume': data['TotalTradedQuantity']
+        })
+        
+        # Sort by date
+        mapped_data = mapped_data.sort_values('Date')
+        
+        return mapped_data
+        
+    except Exception as e:
+        print(f"   ❌ Error fetching data: {e}")
+        return None
 
 def update_csv_with_missing_dates():
-    """Main function to update CSV with missing dates"""
-    print("=" * 50)
-    print("STOCK DATA UPDATER")
-    print("=" * 50)
+    """Main function to update CSV with missing dates using nselib"""
+    print("=" * 60)
+    print("STOCK DATA UPDATER - NSELIB REAL DATA MODE")
+    print("=" * 60)
     
     # Check if file exists
     if not os.path.exists(CSV_FILE):
         print(f"[-] File not found: {CSV_FILE}")
-        return False
+        print("[+] Creating new file with complete data...")
+        
+        # Fetch all data from 2025-01-01 to today
+        start_date = datetime(2025, 1, 1).date()
+        end_date = datetime.now().date()
+        
+        new_data = fetch_nse_data(start_date, end_date)
+        
+        if new_data is not None:
+            new_data.to_csv(CSV_FILE, index=False)
+            print(f"[+] Created new CSV with {len(new_data)} records")
+            print(f"[+] Date range: {new_data['Date'].iloc[0]} to {new_data['Date'].iloc[-1]}")
+            return True
+        else:
+            print("[-] Failed to fetch initial data")
+            return False
     
     # Get last date from CSV
     last_date, df = get_last_date_from_csv()
@@ -78,46 +121,71 @@ def update_csv_with_missing_dates():
     
     print(f"[+] Missing {len(missing)} trading days:")
     for date in missing:
-        print(f"    - {date.strftime('%d/%m/%Y')}")
+        print(f"    - {date.strftime('%Y-%m-%d')}")
     
-    # Get last row for reference
-    last_row = df.iloc[-1]
+    # Fetch data for missing dates
+    print("\n[+] Fetching REAL data from NSE via nselib...")
     
-    # Generate data for missing dates
-    new_rows = []
-    for date in missing:
-        new_row = add_mock_data_for_date(date, last_row)
-        new_rows.append(new_row)
-        print(f"    [+] Added data for {date.strftime('%d/%m/%Y')}: ₹{new_row['Close']}")
+    # Fetch from day after last_date to today
+    fetch_start = last_date + timedelta(days=1)
+    fetch_end = today
     
-    # Append to CSV
-    new_df = pd.DataFrame(new_rows)
-    updated_df = pd.concat([df, new_df], ignore_index=True)
+    new_data = fetch_nse_data(fetch_start, fetch_end)
+    
+    if new_data is None or new_data.empty:
+        print("[-] Failed to fetch new data")
+        return False
+    
+    print(f"\n[+] Successfully fetched {len(new_data)} days of real data")
+    
+    # Append to existing CSV
+    updated_df = pd.concat([df, new_data], ignore_index=True)
+    
+    # Remove duplicates (keep last occurrence)
+    updated_df = updated_df.drop_duplicates(subset=['Date'], keep='last')
+    
+    # Sort by date
+    updated_df['Date_dt'] = pd.to_datetime(updated_df['Date'], format='%d/%m/%Y')
+    updated_df = updated_df.sort_values('Date_dt').drop('Date_dt', axis=1)
+    
+    # Save back to CSV
     updated_df.to_csv(CSV_FILE, index=False)
     
     print(f"\n[+] CSV updated successfully!")
-    print(f"[+] New last date: {missing[-1].strftime('%d/%m/%Y')}")
+    print(f"[+] Total records: {len(updated_df)}")
+    print(f"[+] New last date: {updated_df['Date'].iloc[-1]}")
     
     return True
 
 def get_price_for_date(target_date):
-    """Get stock details for a specific date"""
-    df = pd.read_csv(CSV_FILE)
-    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
+    """Get stock details for a specific date from CSV"""
+    if not os.path.exists(CSV_FILE):
+        print(f"[-] CSV file not found: {CSV_FILE}")
+        return None
     
-    # Convert target_date to datetime if it's a string
+    df = pd.read_csv(CSV_FILE)
+    
+    # Convert target_date to string in DD/MM/YYYY format
     if isinstance(target_date, str):
-        target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        # If input is YYYY-MM-DD
+        if '-' in target_date and len(target_date) == 10:
+            target_date_obj = datetime.strptime(target_date, '%Y-%m-%d').date()
+            target_str = target_date_obj.strftime('%d/%m/%Y')
+        else:
+            target_str = target_date
+    else:
+        # If input is date object
+        target_str = target_date.strftime('%d/%m/%Y')
     
     # Find the row
-    mask = df['Date'].dt.date == target_date
+    mask = df['Date'] == target_str
     if not mask.any():
-        print(f"[-] No data found for {target_date}")
+        print(f"[-] No data found for {target_str}")
         return None
     
     row = df[mask].iloc[-1]
     return {
-        'date': target_date.strftime('%d/%m/%Y'),
+        'date': target_str,
         'open': row['Open'],
         'high': row['High'],
         'low': row['Low'],
@@ -125,18 +193,47 @@ def get_price_for_date(target_date):
         'volume': row['Volume']
     }
 
+def verify_march_dates():
+    """Verify if March 13 and 16 data exists"""
+    print("\n" + "=" * 60)
+    print("VERIFYING MARCH 2026 DATES")
+    print("=" * 60)
+    
+    if not os.path.exists(CSV_FILE):
+        print("[-] CSV file not found")
+        return
+    
+    df = pd.read_csv(CSV_FILE)
+    march_data = df[df['Date'].str.contains('/03/2026')]
+    
+    if not march_data.empty:
+        print("\n📊 MARCH 2026 DATA IN CSV:")
+        print(march_data.to_string(index=False))
+        
+        for date in ['13/03/2026', '16/03/2026']:
+            if date in march_data['Date'].values:
+                row = march_data[march_data['Date'] == date].iloc[0]
+                print(f"\n✅ {date}: Close = ₹{row['Close']}")
+            else:
+                print(f"\n❌ {date}: Not found in CSV")
+    else:
+        print("[-] No March 2026 data found")
+
 if __name__ == "__main__":
     # Update the CSV with missing dates
     update_csv_with_missing_dates()
     
-    # Example: Get price for a specific date
-    print("\n" + "=" * 50)
-    print("TEST: Get price for 2026-03-13")
-    print("=" * 50)
-    price_data = get_price_for_date('2026-03-13')
-    if price_data:
-        print(f"Date: {price_data['date']}")
-        print(f"Close: ₹{price_data['close']}")
-        print(f"Open: ₹{price_data['open']}")
-        print(f"High: ₹{price_data['high']}")
-        print(f"Low: ₹{price_data['low']}")
+    # Verify March dates
+    verify_march_dates()
+    
+    # Test get_price_for_date
+    print("\n" + "=" * 60)
+    print("TESTING get_price_for_date()")
+    print("=" * 60)
+    
+    for test_date in ['2026-03-13', '2026-03-16']:
+        price_data = get_price_for_date(test_date)
+        if price_data:
+            print(f"\n{test_date}:")
+            print(f"   Open:  ₹{price_data['open']}")
+            print(f"   Close: ₹{price_data['close']}")

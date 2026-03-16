@@ -3,7 +3,7 @@ import os
 
 # Stock settings
 STOCK_SYMBOL = "ROLEXRINGS.NS"  # .NS for NSE stocks
-STOCK_NAME = "Rolex Rings"
+STOCK_NAME = "ROLEXRINGS"
 
 # Date settings
 START_DATE = "2025-01-01"  # 1 year of historical data
