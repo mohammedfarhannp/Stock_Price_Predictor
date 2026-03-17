@@ -1,98 +1,100 @@
-# fetch_data.py (fixed for proper historical data)
-import pandas as pd
+# ====================================
+# Import Section
+# ====================================
+from config import CSV_FILE
 from datetime import datetime, timedelta
-import os
-import time
-from config import STOCK_SYMBOL, START_DATE, END_DATE, DATA_RAW_DIR
+from nselib import capital_market
 
-# Remove .NS suffix for nselib
-STOCK_NAME = STOCK_SYMBOL.replace('.NS', '')
+import pandas as pd
 
-def fetch_stock_data():
-    """
-    Download stock data from NSE India using nselib
-    """
-    print(f"Fetching data for {STOCK_NAME} from NSE India...")
-    
-    # Use a much longer historical period
-    # Let's get 2 years of data to ensure enough for 60-day sequences
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=730)  # 2 years
-    
-    start_date_str = start_date.strftime('%d-%m-%Y')
-    end_date_str = end_date.strftime('%d-%m-%Y')
-    
-    print(f"[+] Fetching from {start_date_str} to {end_date_str}...")
+# ====================================
+# Missing Dates Return Function
+# ====================================
+def get_missing_dates():
+    # Load CSV
+    global df
+    df = pd.read_csv(CSV_FILE)
+    # Convert DATE column (handle mixed formats safely)
+    df['DATE'] = pd.to_datetime(df['DATE'], format='mixed', dayfirst=True)
+
+    # Get last recorded date
+    last_date = df['DATE'].max().date()
+
+    # Today's date
+    today = datetime.now().date()
+
+    missing_dates = []
+    current = last_date + timedelta(days=1)
+
+    # Exclude today
+    while current < today:
+        if current.weekday() < 5:  # Mon-Fri only
+            missing_dates.append(current)
+        current += timedelta(days=1)
+
+    if len(missing_dates) == 1:
+        missing_dates[0] = last_date
+
+    return missing_dates
+
+# ====================================
+# Get Data for dates Function
+# ====================================
+def get_data_for_dates(dates):
+    if not dates:
+        return None
     
     try:
-        from nselib import capital_market
+        dates = [date.strftime('%d-%m-%Y') for date in dates]
         
-        # Try different methods to get historical data
-        methods = [
-            lambda: capital_market.price_volume_and_deliverable_position_data(
-                symbol=STOCK_NAME,
-                from_date=start_date_str,
-                to_date=end_date_str
-            ),
-            lambda: capital_market.historical_data(
-                symbol=STOCK_NAME,
-                from_date=start_date_str,
-                to_date=end_date_str
-            )
-        ]
-        
-        data = None
-        for i, method in enumerate(methods):
-            try:
-                print(f"   Attempt {i+1}...")
-                data = method()
-                if data is not None and not data.empty:
-                    print(f"   [+] Success with method {i+1}")
-                    break
-            except Exception as e:
-                print(f"   [-] Method {i+1} failed: {str(e)[:50]}")
-                continue
-        
+        data = capital_market.price_volume_and_deliverable_position_data(
+            symbol="ROLEXRINGS",
+            from_date=dates[0],
+            to_date=dates[-1]
+        )
+
         if data is None or data.empty:
-            print("[-] No data returned from NSE.")
             return None
-        
-        # Rename columns
-        data = data.rename(columns={
-            'DATE': 'Date',
-            'OPEN': 'Open',
-            'HIGH': 'High', 
-            'LOW': 'Low',
-            'CLOSE': 'Close',
-            'VOLUME': 'Volume'
+
+        # Extract required columns
+        ndf = pd.DataFrame({
+            'DATE': pd.to_datetime(data['Date']).dt.strftime('%Y-%m-%d'),
+            'OPEN': data['OpenPrice'],
+            'HIGH': data['HighPrice'],
+            'LOW': data['LowPrice'],
+            'CLOSE': data['ClosePrice'],
+            'VOLUME': data['TotalTradedQuantity']
         })
-        
-        # Convert date format
-        data['Date'] = pd.to_datetime(data['Date'], format='%d-%b-%Y').dt.strftime('%d/%m/%Y')
-        
-        # Sort by date
-        data = data.sort_values('Date')
-        
-        print(f"[+] Data fetched successfully!")
-        print(f"[+] Records downloaded: {len(data)} days")
-        print(f"[+] Date range: {data['Date'].iloc[0]} to {data['Date'].iloc[-1]}")
-        
-        # Save to CSV
-        filename = f"{STOCK_NAME}_NSE_historical.csv"
-        filepath = os.path.join(DATA_RAW_DIR, filename)
-        data.to_csv(filepath, index=False)
-        
-        print(f"[+] Data saved to: {filepath}")
-        
-        return filepath
-        
-    except ImportError:
-        print("[-] nselib not installed. Installing now...")
-        os.system('pip install nselib')
-        return None
+
+        return ndf
+
     except Exception as e:
-        print(f"[-] Error fetching data: {e}")
+        print(f"Error fetching: {e}")
         return None
 
+# ====================================
+# Save Data for missing dates Function
+# ====================================
+def fix_missing_data():
+    print("[*] Checking for missing data...")
+    Missing_Dates = get_missing_dates()
+    
+    if not Missing_Dates:
+        print("[+] Everything Upto Date!")
+        return None
+    
+    print(f"[!] Data missing for Dates {Missing_Dates[0]} to {Missing_Dates[-1]}")
+    print("[*] Attempting to Retrieve Data...")
+    ndf = get_data_for_dates(Missing_Dates)
+    ndf["DATE"] = pd.to_datetime(ndf["DATE"], format='mixed', dayfirst=True)#.dt.strftime('%d/%m/%Y')
+    result_df = pd.concat([df, ndf], ignore_index=True)
+    result_df.drop_duplicates()
+    result_df.dropna(inplace=True)
+    sorted_result_df = result_df.sort_values("DATE")
+    sorted_result_df["DATE"] = sorted_result_df["DATE"].dt.strftime('%d/%m/%Y')
+    sorted_result_df.to_csv(CSV_FILE, index=False)
+    print("[+] New Data Acquired!")
+
+# ===== TEST =====
 if __name__ == "__main__":
-    fetch_stock_data()
+    pass
