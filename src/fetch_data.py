@@ -1,7 +1,7 @@
 # ====================================
 # Import Section
 # ====================================
-from config import CSV_FILE
+from config import CSV_FILE, STOCK_NAME
 from datetime import datetime, timedelta
 from nselib import capital_market
 
@@ -33,7 +33,7 @@ def get_missing_dates():
         current += timedelta(days=1)
 
     if len(missing_dates) == 1:
-        missing_dates[0] = last_date
+        missing_dates = [last_date, missing_dates[0]]
 
     return missing_dates
 
@@ -48,7 +48,7 @@ def get_data_for_dates(dates):
         dates = [date.strftime('%d-%m-%Y') for date in dates]
         
         data = capital_market.price_volume_and_deliverable_position_data(
-            symbol="ROLEXRINGS",
+            symbol=STOCK_NAME,
             from_date=dates[0],
             to_date=dates[-1]
         )
@@ -81,11 +81,15 @@ def fix_missing_data():
     
     if not Missing_Dates:
         print("[+] Everything Upto Date!")
-        return None
+        return True
     
     print(f"[!] Data missing for Dates {Missing_Dates[0]} to {Missing_Dates[-1]}")
     print("[*] Attempting to Retrieve Data...")
     ndf = get_data_for_dates(Missing_Dates)
+    if not ndf:
+        print("[-] Data Retrival Failed!")
+        return None
+    
     ndf["DATE"] = pd.to_datetime(ndf["DATE"], format='mixed', dayfirst=True)#.dt.strftime('%d/%m/%Y')
     result_df = pd.concat([df, ndf], ignore_index=True)
     result_df.drop_duplicates()
@@ -94,6 +98,7 @@ def fix_missing_data():
     sorted_result_df["DATE"] = sorted_result_df["DATE"].dt.strftime('%d/%m/%Y')
     sorted_result_df.to_csv(CSV_FILE, index=False)
     print("[+] New Data Acquired!")
+    return True
 
 # ===== TEST =====
 if __name__ == "__main__":
