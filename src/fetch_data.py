@@ -86,7 +86,7 @@ def fix_missing_data():
     print(f"[!] Data missing for Dates {Missing_Dates[0]} to {Missing_Dates[-1]}")
     print("[*] Attempting to Retrieve Data...")
     ndf = get_data_for_dates(Missing_Dates)
-    if not ndf:
+    if ndf is None or ndf.empty:
         print("[-] Data Retrival Failed!")
         return None
     
