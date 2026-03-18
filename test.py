@@ -1,14 +1,31 @@
-# test_nselib.py
+# test_march16.py
 from nselib import capital_market
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
+import os
 
-def fetch_stock_data_nselib(symbol="ROLEXRINGS", from_date="01-01-2025", to_date="16-03-2026"):
+# Hardcoded test date
+TEST_DATE = "16-03-2026"
+STOCK_SYMBOL = "ROLEXRINGS"
+
+def fetch_single_day_data(date_str, symbol=STOCK_SYMBOL):
     """
-    Fetch stock data and map nselib columns to your format
+    Fetch data for a single date and extract 6 components:
+    DATE, OPEN, HIGH, LOW, CLOSE, VOLUME
     """
+    print("=" * 60)
+    print(f"TESTING: Fetch data for {date_str}")
+    print("=" * 60)
+    
     try:
-        print(f"Fetching {symbol} data from {from_date} to {to_date}...")
+        # Parse the date
+        test_date = datetime.strptime(date_str, '%d-%m-%Y')
+        
+        # For single day, fetch a small range (day before to day after)
+        from_date = (test_date - timedelta(days=1)).strftime('%d-%m-%Y')
+        to_date = (test_date + timedelta(days=1)).strftime('%d-%m-%Y')
+        
+        print(f"\n[1] Fetching range: {from_date} to {to_date}")
         
         # Fetch data from nselib
         data = capital_market.price_volume_and_deliverable_position_data(
@@ -18,105 +35,116 @@ def fetch_stock_data_nselib(symbol="ROLEXRINGS", from_date="01-01-2025", to_date
         )
         
         if data is None or data.empty:
-            print("❌ No data returned")
+            print("❌ No data returned from nselib")
             return None
         
-        print(f"\n✅ Raw data columns from nselib:")
+        print(f"\n[2] Raw data columns from nselib:")
         for col in data.columns:
-            print(f"   - {col}")
+            print(f"    - {col}")
         
-        # CORRECT MAPPING based on your actual columns
-        mapped_data = pd.DataFrame({
-            'Date': pd.to_datetime(data['Date']).dt.strftime('%d/%m/%Y'),
-            'Open': data['OpenPrice'],        # OpenPrice column
-            'High': data['HighPrice'],        # HighPrice column
-            'Low': data['LowPrice'],          # LowPrice column
-            'Close': data['ClosePrice'],      # ClosePrice column
-            'Volume': data['TotalTradedQuantity']  # TotalTradedQuantity column
-        })
+        print(f"\n[3] Raw data shape: {data.shape}")
+        print("\n[4] Raw data preview:")
+        print(data.head())
         
-        # Sort by date
-        mapped_data = mapped_data.sort_values('Date')
+        # Filter for our specific date
+        target_date_obj = test_date.date()
+        data['Date_obj'] = pd.to_datetime(data['Date']).dt.date
+        day_data = data[data['Date_obj'] == target_date_obj]
         
-        print(f"\n✅ Mapped to your format: Date, Open, High, Low, Close, Volume")
-        print(f"   Total records: {len(mapped_data)}")
-        print(f"   From: {mapped_data['Date'].iloc[0]}")
-        print(f"   To: {mapped_data['Date'].iloc[-1]}")
+        if day_data.empty:
+            print(f"\n❌ No data found specifically for {date_str}")
+            return None
         
-        return mapped_data
+        print(f"\n[5] Found data for {date_str}:")
+        
+        # Extract the 6 required components
+        extracted = {
+            'DATE': date_str,
+            'OPEN': float(day_data['OpenPrice'].iloc[0]),
+            'HIGH': float(day_data['HighPrice'].iloc[0]),
+            'LOW': float(day_data['LowPrice'].iloc[0]),
+            'CLOSE': float(day_data['ClosePrice'].iloc[0]),
+            'VOLUME': int(day_data['TotalTradedQuantity'].iloc[0])
+        }
+        
+        # Display extracted data
+        print(f"\n[6] EXTRACTED 6 COMPONENTS:")
+        print(f"    DATE:   {extracted['DATE']}")
+        print(f"    OPEN:   ₹{extracted['OPEN']:.2f}")
+        print(f"    HIGH:   ₹{extracted['HIGH']:.2f}")
+        print(f"    LOW:    ₹{extracted['LOW']:.2f}")
+        print(f"    CLOSE:  ₹{extracted['CLOSE']:.2f}")
+        print(f"    VOLUME: {extracted['VOLUME']:,}")
+        
+        return extracted
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"\n❌ Error: {type(e).__name__}: {e}")
         return None
 
-def test_specific_dates(symbol="ROLEXRINGS"):
-    """Test March 13 and 16 specifically"""
-    print("\n" + "="*60)
-    print("TESTING SPECIFIC DATES: March 13 & 16, 2026")
-    print("="*60)
+def save_to_temp_csv(data, filename="temp_march16.csv"):
+    """Save extracted data to temp CSV file"""
+    if data is None:
+        print("\n❌ No data to save")
+        return False
     
-    # Get data for March 2026
-    data = fetch_stock_data_nselib(
-        symbol=symbol,
-        from_date="01-03-2026",
-        to_date="17-03-2026"
-    )
+    # Create DataFrame with exact columns needed
+    df = pd.DataFrame([data])
     
-    if data is not None:
-        print("\n📊 ALL DATA FOR MARCH 2026:")
-        print(data.to_string(index=False))
+    # Save to temp CSV
+    df.to_csv(filename, index=False)
+    print(f"\n[7] Data saved to: {filename}")
+    
+    # Verify the save
+    if os.path.exists(filename):
+        print(f"    File size: {os.path.getsize(filename)} bytes")
         
-        # Filter for specific dates
-        target_dates = ['13/03/2026', '16/03/2026']
-        for target in target_dates:
-            mask = data['Date'] == target
-            if mask.any():
-                row = data[mask].iloc[0]
-                print(f"\n✅ FOUND DATA FOR {target}:")
-                print(f"   Open:  ₹{row['Open']}")
-                print(f"   High:  ₹{row['High']}")
-                print(f"   Low:   ₹{row['Low']}")
-                print(f"   Close: ₹{row['Close']}")
-                print(f"   Volume: {row['Volume']}")
-            else:
-                print(f"\n❌ No data for {target}")
-    
-    return data
-
-def update_csv_file():
-    """Update your existing CSV file with real data"""
-    csv_path = "data/raw/ROLEXRINGS_NS_2025-01-01_to_CURRENT.csv"
-    
-    # Fetch complete data from nselib
-    print("\n" + "="*60)
-    print("UPDATING CSV WITH REAL DATA")
-    print("="*60)
-    
-    full_data = fetch_stock_data_nselib(
-        symbol="ROLEXRINGS",
-        from_date="01-01-2025",
-        to_date="16-03-2026"
-    )
-    
-    if full_data is not None:
-        # Save to your CSV file
-        full_data.to_csv(csv_path, index=False)
-        print(f"\n✅ CSV updated successfully: {csv_path}")
-        print(f"   Records: {len(full_data)}")
-        print(f"   Date range: {full_data['Date'].iloc[0]} to {full_data['Date'].iloc[-1]}")
+        # Read back to verify
+        verify_df = pd.read_csv(filename)
+        print(f"\n[8] Verification - CSV contents:")
+        print(verify_df.to_string(index=False))
         
-        # Show March data specifically
-        march_data = full_data[full_data['Date'].str.contains('/03/2026')]
-        if not march_data.empty:
-            print("\n📊 MARCH 2026 DATA IN YOUR CSV:")
-            print(march_data.to_string(index=False))
-    
-    return full_data
+        return True
+    else:
+        print("❌ Failed to save file")
+        return False
 
 if __name__ == "__main__":
-    print("="*60)
-    print("NSELIB TO YOUR CSV FORMAT CONVERTER")
-    print("="*60)
+    # Create temp directory if it doesn't exist
+    os.makedirs("temp", exist_ok=True)
     
-    # Update your CSV file
-    update_csv_file()
+    # Test with March 16, 2026
+    extracted_data = fetch_single_day_data(TEST_DATE)
+    
+    if extracted_data:
+        # Save to temp CSV
+        save_to_temp_csv(extracted_data, "temp/march16_data.csv")
+        
+        print("\n" + "=" * 60)
+        print("✅ TEST PASSED: Successfully extracted 6 components")
+        print("=" * 60)
+    else:
+        print("\n" + "=" * 60)
+        print("❌ TEST FAILED: Could not extract data for March 16, 2026")
+        print("=" * 60)
+        
+        # Try alternative: fetch a wider range
+        print("\nTrying alternative: Fetching full March data...")
+        try:
+            alt_data = capital_market.price_volume_and_deliverable_position_data(
+                symbol=STOCK_SYMBOL,
+                from_date="01-03-2026",
+                to_date="31-03-2026"
+            )
+            if alt_data is not None and not alt_data.empty:
+                print("\nFull March data columns:")
+                for col in alt_data.columns:
+                    print(f"    - {col}")
+                print("\nMarch data preview:")
+                print(alt_data.head())
+                
+                # Save full March data for inspection
+                alt_data.to_csv("temp/march_full_data.csv", index=False)
+                print("\nFull March data saved to: temp/march_full_data.csv")
+        except Exception as e:
+            print(f"Alternative also failed: {e}")

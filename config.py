@@ -5,15 +5,16 @@ import os
 STOCK_SYMBOL = "ROLEXRINGS.NS"  # .NS for NSE stocks
 STOCK_NAME = "ROLEXRINGS"
 
-# Date settings
-START_DATE = "2025-01-01"  # 1 year of historical data
-END_DATE = "2026-03-16"     # Current date
+# # Date settings
+# START_DATE = "2025-01-01"  # 1 year of historical data
+# END_DATE = "2026-03-16"     # Current date
 
 # File paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 DATA_PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+CSV_FILE = os.path.join(DATA_RAW_DIR, "ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv")
 
 # Model settings
 TRAIN_TEST_SPLIT = 0.8  # 80% train, 20% test
