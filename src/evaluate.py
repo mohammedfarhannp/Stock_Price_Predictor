@@ -36,14 +36,16 @@ def evaluate_prediction(actual_price, predicted_price, prediction_date):
     
     print(f"[+] Accuracy: {accuracy} (off by {abs_percent_deviation:.2f}%)")
     
-    # Direction prediction
-    if (predicted_price > actual_price and deviation > 0) or \
-       (predicted_price < actual_price and deviation < 0):
+    predicted_direction = predicted_price - actual_price
+    actual_direction = actual_price - predicted_price  # or compare with previous day's price ideally
+
+    if (predicted_direction > 0 and actual_direction > 0) or (predicted_direction < 0 and actual_direction < 0):
         direction_correct = True
-        print("[+] Direction prediction: ✓ Correct")
+        print("[+] Prediction Direction is Correct!")
     else:
         direction_correct = False
-        print("[-] Direction prediction: ✗ Wrong")
+        print("[-] Prediction Direction is Wrong!")
+
     
     # Log the evaluation
     log_evaluation(prediction_date, predicted_price, actual_price, 
