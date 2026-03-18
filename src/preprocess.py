@@ -19,6 +19,19 @@ def load_latest_data():
     print(f"[+] Loading: {latest_file}")
     df = pd.read_csv(filepath)
     
+    # Normalize column names
+    df.columns = [col.upper() for col in df.columns]
+
+    # Rename to expected format
+    df = df.rename(columns={
+        'DATE': 'Date',
+        'OPEN': 'Open',
+        'HIGH': 'High',
+        'LOW': 'Low',
+        'CLOSE': 'Close',
+        'VOLUME': 'Volume'
+    })
+    
     # Drop the first column if it's unnamed (contains stock symbol)
     if 'Unnamed: 0' in df.columns:
         df = df.drop(columns=['Unnamed: 0'])
