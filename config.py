@@ -13,13 +13,15 @@ STOCK_NAME = "ROLEXRINGS"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 DATA_PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
+DATA_PREDICTION_DIR = os.path.join(BASE_DIR, "data", "prediction")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 CSV_FILE = os.path.join(DATA_RAW_DIR, "ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv")
+PREDICTION_FILE = os.path.join(DATA_PREDICTION_DIR, "predictions.csv")
 
 # Model settings
 TRAIN_TEST_SPLIT = 0.8  # 80% train, 20% test
 LOOKBACK_DAYS = 60      # Use last 60 days to predict next day
-FEATURES = ['Open', 'High', 'Low', 'Close', 'Volume']
+FEATURES = ['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME']
 
 # Create directories if they don't exist
 for directory in [DATA_RAW_DIR, DATA_PROCESSED_DIR, MODELS_DIR]:
