@@ -7,7 +7,7 @@ Commands = [
     "git commit -m \"New Processed Data!\" -m \"Automated Commit!\"",
     "git add data\\prediction\\predictions.csv",
     "git commit -m \"New Prediction Added!\" -m \"Automated Commit!\"",
-    "git add model\\best_model.pkl",
+    "git add models\\best_model.pkl",
     "git commit -m \"Model Updated!\" -m \"Automated Commit!\"",
     "git add .",
     "git commit -m \"New Data Added!\" -m \"Automated Commit!\""
