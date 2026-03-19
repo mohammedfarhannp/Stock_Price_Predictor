@@ -21,7 +21,7 @@ PREDICTION_FILE = os.path.join(DATA_PREDICTION_DIR, "predictions.csv")
 # Model settings
 TRAIN_TEST_SPLIT = 0.8  # 80% train, 20% test
 LOOKBACK_DAYS = 60      # Use last 60 days to predict next day
-FEATURES = ['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME']
+FEATURES = ['Open', 'High', 'Low', 'Close', 'Volume']
 
 # Create directories if they don't exist
 for directory in [DATA_RAW_DIR, DATA_PROCESSED_DIR, MODELS_DIR]:
