@@ -1,7 +1,17 @@
 import os
 
-command_1 = "git add ."
-command_2 = "git commit -m \"Automated Commit From git_commit.py\" -m \"This commit is automated commit from python file\""
+Commands = [
+    "git add data\\raw\\ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv",
+    "git commit -m \"New Data Added!\" -m \"Automated Commit!\"",
+    "git add data\\processed\\processed_data.csv",
+    "git commit -m \"New Processed Data!\" -m \"Automated Commit!\"",
+    "git add data\\prediction\\predictions.csv",
+    "git commit -m \"New Prediction Added!\" -m \"Automated Commit!\"",
+    "git add model\\best_model.pkl",
+    "git commit -m \"Model Updated!\" -m \"Automated Commit!\"",
+    "git add .",
+    "git commit -m \"New Data Added!\" -m \"Automated Commit!\""
+]
 
-os.system(command_1)
-os.system(command_2)
+for command in Commands:
+    os.system(command)
