@@ -10,6 +10,7 @@ from fetch_data import fix_missing_data
 from preprocess import preprocess_data
 from train_model import train_models
 from predict import predict_next_day
+from log_prediction import log_prediction
 
 # ====================================
 # Main Pipeline
@@ -50,6 +51,7 @@ def main():
         return
     
     predicted_price, next_date = prediction
+    log_prediction(next_date, predicted_price)
     print("[+] Prediction generated successfully")
 
     print("\n" + "=" * 60)
