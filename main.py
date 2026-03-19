@@ -56,11 +56,10 @@ def main():
 
     print("\n" + "=" * 60)
     print("[+] PIPELINE COMPLETED SUCCESSFULLY")
+    print("[->] Run plot_predictions.py to get visuals of predicted price vs actual price")
     print("=" * 60)
 
-    print("\n[!] Next Step:")
-    print(f"    Wait for next trading day ({next_date}) to compare actual price.")
-    print("    Then run evaluation using evaluate.py")
+    
 
 # ====================================
 # Run
