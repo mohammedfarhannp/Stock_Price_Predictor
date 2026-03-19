@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-from config import CSV_FILE, PREDICTION_FILE
+from config import CSV_FILE, PREDICTION_FILE, STOCK_NAME
 from datetime import datetime
 
 #
@@ -36,7 +36,7 @@ plt.plot(df["DATE"], df["ACTUAL"], marker='o', label="Actual Price")
 plt.plot(df["DATE"], df["PREDICTION"], marker='s', linestyle='--', label="Predicted Price")
 
 # Labels & title
-plt.title("Stock Price: Actual vs Predicted")
+plt.title(f"Stock Price: Actual vs Predicted for {STOCK_NAME}")
 plt.xlabel("Date")
 plt.ylabel("Price (₹)")
 
