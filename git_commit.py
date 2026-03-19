@@ -10,7 +10,7 @@ Commands = [
     "git add models\\best_model.pkl",
     "git commit -m \"Model Updated!\" -m \"Automated Commit!\"",
     "git add .",
-    "git commit -m \"New Data Added!\" -m \"Automated Commit!\""
+    "git commit -m \"Auto Commits\" -m \"Automated Commit!\""
 ]
 
 for command in Commands:
