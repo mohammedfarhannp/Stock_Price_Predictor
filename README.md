@@ -17,7 +17,7 @@ Stock Price Predictor ML Project/
 │
 ├── data/
 │   ├── raw/
-│   │   └── ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv   # Raw stock data
+│   │   └── SUZLON_NS_01-01-2025_to_CURRENT.csv   # Raw stock data
 │   ├── processed/
 │   │   └── processed_data.csv                         # Data with engineered features
 │   └── prediction/
@@ -33,7 +33,6 @@ Stock Price Predictor ML Project/
     ├── preprocess.py                # Feature engineering
     ├── train_model.py               # Trains ML models
     ├── predict.py                   # Makes predictions
-    ├── evaluate.py                  # Evaluates predictions
     └── log_prediction.py            # Logs predictions to CSV
 ```
 
@@ -77,7 +76,7 @@ Generates a graph showing actual vs predicted prices over time.
 
 ## Data Format
 
-### Raw Data (`data/raw/ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv`)
+### Raw Data (`data/raw/SUZLON_NS_01-01-2025_to_CURRENT.csv`)
 | Column | Description |
 |--------|-------------|
 | DATE | Trading date (DD/MM/YYYY) |
