@@ -2,8 +2,8 @@
 import os
 
 # Stock settings
-STOCK_SYMBOL = "ROLEXRINGS.NS"  # .NS for NSE stocks
-STOCK_NAME = "ROLEXRINGS"
+STOCK_SYMBOL = "SUZLON.NS"  # .NS for NSE stocks
+STOCK_NAME = "SUZLON"
 
 # # Date settings
 # START_DATE = "2025-01-01"  # 1 year of historical data
@@ -15,7 +15,7 @@ DATA_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 DATA_PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 DATA_PREDICTION_DIR = os.path.join(BASE_DIR, "data", "prediction")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
-CSV_FILE = os.path.join(DATA_RAW_DIR, "ROLEXRINGS_NS_01-01-2025_to_CURRENT.csv")
+CSV_FILE = os.path.join(DATA_RAW_DIR, "SUZLON_NS_01-01-2025_to_CURRENT.csv")
 PREDICTION_FILE = os.path.join(DATA_PREDICTION_DIR, "predictions.csv")
 
 # Model settings
